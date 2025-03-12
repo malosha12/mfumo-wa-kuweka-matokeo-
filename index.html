@@ -1,0 +1,513 @@
+<!DOCTYPE html>
+<html lang="sw">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mfumo wa Matokeo ya Wanafunzi</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+            margin: 0;
+            padding: 20px;
+        }
+        .container {
+            max-width: 800px;
+            margin: 20px auto;
+            background: white;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 0 20px rgba(0,0,0,0.1);
+        }
+        h1 {
+            color: #2c3e50;
+            text-align: center;
+        }
+        .form-group {
+            margin-bottom: 15px;
+        }
+        label {
+            display: block;
+            margin-bottom: 5px;
+            color: #34495e;
+            font-weight: bold;
+        }
+        input {
+            width: 100%;
+            padding: 8px;
+            border: 2px solid #ddd;
+            border-radius: 5px;
+            box-sizing: border-box;
+        }
+        button {
+            background: #27ae60;
+            color: white;
+            padding: 10px 20px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+        button:hover {
+            background: #219653;
+        }
+        .dashboard {
+            margin-top: 20px;
+            display: none;
+        }
+        .dashboard.show {
+            display: block;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 20px;
+            background: #ffffff;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+            border-radius: 8px;
+            overflow: hidden;
+        }
+        th, td {
+            padding: 15px;
+            text-align: left;
+            border-bottom: 1px solid #e0e0e0;
+        }
+        th {
+            background: #2c3e50;
+            color: white;
+            font-weight: bold;
+        }
+        td {
+            background: #f9f9f9;
+            color: #34495e;
+        }
+        .pass {
+            color: #27ae60;
+            font-weight: bold;
+        }
+        .fail {
+            color: #e74c3c;
+            font-weight: bold;
+        }
+        .edit-btn {
+            background: #3498db;
+            padding: 5px 10px;
+            margin: 0 5px;
+        }
+        .edit-btn:hover {
+            background: #2980b9;
+        }
+        .delete-btn {
+            background: #e74c3c;
+            padding: 5px 10px;
+            margin: 0 5px;
+        }
+        .delete-btn:hover {
+            background: #c0392b;
+        }
+        .error {
+            color: #c0392b;
+            margin-top: 10px;
+        }
+        .welcome-text, .footer-text {
+            text-align: center;
+            font-size: 1.2em;
+            margin: 10px 0;
+            animation: colorChange 7s infinite;
+        }
+        .notifications {
+            margin-top: 20px;
+            padding: 10px;
+            background: #f0f0f0;
+            border-radius: 5px;
+        }
+        .notification-item {
+            padding: 5px;
+            border-bottom: 1px solid #ddd;
+        }
+        @keyframes colorChange {
+            30% { color: #ff0000; }
+            71% { color: #0000ff; }
+            100% { color: #ff0000; }
+        }
+    </style>
+</head>
+<body>
+    <div class="container" id="loginSection">
+        <div class="welcome-text">YOUR WARMLY WELCOME 🚀</div>
+        <h1><i class="fas fa-sign-in-alt"></i> RESULTS REGISTRATION FORM  </h1>
+        <form id="loginForm">
+            <div class="form-group">
+                <label>Username/Namba ya Mtihani:</label>
+                <input type="text" id="username" required>
+            </div>
+            <div class="form-group">
+                <label>Registration No/Nenosiri:</label>
+                <input type="password" id="password" required>
+            </div>
+            <button type="submit"><i class="fas fa-sign-in-alt"></i> INGIA</button>
+            <button type="button" id="showRegister"><i class="fas fa-user-plus"></i> KAMA BADO HUNA ACCOUNT JISAJILI HAPA</button>
+        </form>
+        <form id="registerForm" style="display: none;">
+            <div class="form-group">
+                <label>Jina Lako:</label>
+                <input type="text" id="regName" required>
+            </div>
+            <div class="form-group">
+                <label>Namba Yako ya Mtihani:</label>
+                <input type="text" id="regExamNumber" required>
+            </div>
+            <div class="form-group">
+                <label>Nenosiri Lako:</label>
+                <input type="password" id="regPassword" required>
+            </div>
+            <button type="submit"><i class="fas fa-save"></i> Jisajili</button>
+            <button type="button" id="showLogin"><i class="fas fa-arrow-left"></i> Rudi</button>
+        </form>
+        <div class="error" id="errorMsg"></div>
+        <div class="footer-text">POWERED BY MALOSHA</div>
+    </div>
+    <div class="container dashboard" id="dashboard">
+        <h1 id="dashboardTitle"></h1>
+        <div id="dashboardContent"></div>
+        <button id="logout"><i class="fas fa-sign-out-alt"></i> Toka</button>
+    </div>
+
+    <script>
+        // Firebase Config
+        const firebaseConfig = {
+            apiKey: "AIzaSyCn2-cMn0t4oWUcwES8Cqn8wkaw4QoFe0E",
+            authDomain: "matokeo-it.firebaseapp.com",
+            databaseURL: "https://matokeo-it-default-rtdb.asia-southeast1.firebasedatabase.app",
+            projectId: "matokeo-it",
+            storageBucket: "matokeo-it.firebasestorage.app",
+            messagingSenderId: "905457313216",
+            appId: "1:905457313216:web:0ade6e891b76217ab99425",
+            measurementId: "G-GT4DBGRHF2"
+        };
+
+        // Initialize Firebase
+        firebase.initializeApp(firebaseConfig);
+        console.log("Firebase initialized:", firebase.apps.length > 0);
+
+        // Firebase database references
+        const db = firebase.database();
+        const studentsRef = db.ref('students');
+        const notificationsRef = db.ref('notifications');
+
+        // Local Storage fallback (array)
+        let students = JSON.parse(localStorage.getItem('students')) || [];
+        const ADMIN_USERNAME = "1340";
+        const ADMIN_REGNO = "1340";
+
+        const loginForm = document.getElementById('loginForm');
+        const registerForm = document.getElementById('registerForm');
+        const dashboard = document.getElementById('dashboard');
+        const dashboardTitle = document.getElementById('dashboardTitle');
+        const dashboardContent = document.getElementById('dashboardContent');
+        const loginSection = document.getElementById('loginSection');
+        const errorMsg = document.getElementById('errorMsg');
+
+        // Sync Local Storage with Firebase on load
+        function syncLocalStorageWithFirebase() {
+            console.log("Syncing with Firebase...");
+            studentsRef.once('value', (snapshot) => {
+                const firebaseData = snapshot.val();
+                if (firebaseData) {
+                    students = Array.isArray(firebaseData) ? firebaseData : Object.values(firebaseData);
+                    localStorage.setItem('students', JSON.stringify(students));
+                    console.log("Synced from Firebase:", students);
+                } else if (students.length > 0) {
+                    studentsRef.set(students);
+                    console.log("Pushed local data to Firebase:", students);
+                } else {
+                    console.log("No data in Firebase or Local Storage.");
+                }
+            }, (error) => {
+                console.error("Firebase sync failed:", error);
+            });
+        }
+
+        syncLocalStorageWithFirebase();
+
+        function calculateResults(html, css, java) {
+            const total = parseInt(html || 0) + parseInt(css || 0) + parseInt(java || 0);
+            const percentage = total / 100 * 100;
+            let grade, gpa, status;
+            if (percentage >= 75) { grade = 'A'; gpa = 4.0; }
+            else if (percentage >= 60) { grade = 'B+'; gpa = 3.5;}
+            else if (percentage >= 50) { grade = 'B'; gpa = 3.0; }
+            else if (percentage >= 40) { grade = 'C'; gpa = 2.0; }
+            else if (percentage >= 40) { grade = 'D'; gpa = 1.0; }
+            else { grade = 'F'; gpa = 0.0; }
+            status = percentage >= 40 ? 'Pass' : 'fail';
+            return { total, grade, gpa, status };
+        }
+
+        function formatDateTime(dateTime) {
+            const date = new Date(dateTime);
+            const options = { 
+                year: 'numeric', 
+                month: 'long', 
+                day: 'numeric', 
+                hour: '2-digit', 
+                minute: '2-digit', 
+                hour12: false 
+            };
+            return date.toLocaleString('sw', options);
+        }
+
+        // Function to send notification when a student views their results
+        function sendNotification(student) {
+            const timestamp = new Date().toISOString();
+            const notification = {
+                studentName: student.name,
+                examNumber: student.examNumber,
+                timestamp: timestamp,
+                message: `${student.name} (Namba: ${student.examNumber}) ameona matokeo yake tarehe ${formatDateTime(timestamp)}`
+            };
+            notificationsRef.push(notification)
+                .then(() => {
+                    console.log("Notification sent:", notification);
+                })
+                .catch((error) => {
+                    console.error("Failed to send notification:", error);
+                });
+        }
+
+        document.getElementById('showRegister').addEventListener('click', () => {
+            loginForm.style.display = 'none';
+            registerForm.style.display = 'block';
+        });
+
+        document.getElementById('showLogin').addEventListener('click', () => {
+            loginForm.style.display = 'block';
+            registerForm.style.display = 'none';
+        });
+
+        registerForm.addEventListener('submit', (e) => {
+            e.preventDefault();
+            const student = {
+                name: document.getElementById('regName').value,
+                examNumber: document.getElementById('regExamNumber').value,
+                password: document.getElementById('regPassword').value,
+                marks: { html: null, css: null, java: null },
+                resultDate: null
+            };
+            if (students.some(s => s.examNumber === student.examNumber)) {
+                errorMsg.textContent = 'Namba hii ya mtihani tayari imesajiliwa!';
+                return;
+            }
+            students.push(student);
+            localStorage.setItem('students', JSON.stringify(students));
+            studentsRef.set(students)
+                .then(() => {
+                    alert('Umefanikiwa kujisajili!');
+                    registerForm.reset();
+                    loginForm.style.display = 'block';
+                    registerForm.style.display = 'none';
+                    console.log("Student registered:", student);
+                })
+                .catch((error) => {
+                    console.error("Firebase error:", error);
+                    alert('Kuna tatizo la usajili. Data imehifadhiwa lokalini tu.');
+                });
+        });
+
+        loginForm.addEventListener('submit', (e) => {
+            e.preventDefault();
+            const username = document.getElementById('username').value;
+            const password = document.getElementById('password').value;
+            console.log("Login attempt:", { username, password });
+            if (username === ADMIN_USERNAME && password === ADMIN_REGNO) {
+                showAdminDashboard();
+            } else {
+                const student = students.find(s => s && s.examNumber === username && s.password === password);
+                if (student) {
+                    showStudentDashboard(student);
+                    sendNotification(student); // Send notification when student views results
+                } else {
+                    errorMsg.textContent = 'Username au nenosiri si sahihi!';
+                    console.log("Login failed: Invalid credentials");
+                }
+            }
+        });
+
+        function showAdminDashboard() {
+            loginSection.style.display = 'none';
+            dashboard.classList.add('show');
+            dashboardTitle.innerHTML = '<i class="fas fa-user-shield"></i> ONLY MALOSHA CAN UPDATE RESULTS';
+            let content = `
+                <form id="marksForm">
+                    <div class="form-group">
+                        <label>Namba ya Mtihani:</label>
+                        <input type="text" id="studentExamNumberMarks" required>
+                    </div>
+                    <div class="form-group">
+                        <label>HTML (30):</label>
+                        <input type="number" id="htmlMarks" min="0" max="30" required>
+                    </div>
+                    <div class="form-group">
+                        <label>CSS (20):</label>
+                        <input type="number" id="cssMarks" min="0" max="20" required>
+                    </div>
+                    <div class="form-group">
+                        <label>Java (50):</label>
+                        <input type="number" id="javaMarks" min="0" max="50" required>
+                    </div>
+                    <div class="form-group">
+                        <label>Tarehe na Muda wa Matokeo:</label>
+                        <input type="datetime-local" id="resultDate" required>
+                    </div>
+                    <button type="submit"><i class="fas fa-save"></i> Hifadhi Alama</button>
+                </form>
+                <h3>Orodha ya Wanafunzi</h3>
+            `;
+            students.forEach(student => {
+                if (!student) return;
+                const marks = student.marks || { html: null, css: null, java: null };
+                const { total, grade, gpa, status } = calculateResults(marks.html, marks.css, marks.java);
+                content += `
+                    <table style="margin-bottom: 20px;">
+                        <tr><th>Jina:</th><td>${student.name || 'N/A'}</td></tr>
+                        <tr><th>Namba ya Mtihani:</th><td>${student.examNumber || 'N/A'}</td></tr>
+                        <tr><th>HTML:</th><td>${marks.html || 'Bado'}</td></tr>
+                        <tr><th>CSS:</th><td>${marks.css || 'Bado'}</td></tr>
+                        <tr><th>Java:</th><td>${marks.java || 'Bado'}</td></tr>
+                        <tr><th>Jumla:</th><td>${total || 'Bado'}</td></tr>
+                        <tr><th>Grade:</th><td>${grade || 'Bado'}</td></tr>
+                        <tr><th>GPA:</th><td>${gpa || 'Bado'}</td></tr>
+                        <tr><th>Status:</th><td class="${status === 'Pass' ? 'pass' : 'fail'}">${status || 'Bado'}</td></tr>
+                        <tr><th>Tarehe ya Matokeo:</th><td>${student.resultDate ? formatDateTime(student.resultDate) : 'Bado'}</td></tr>
+                        <tr><th>Chaguo:</th><td>
+                            <button class="edit-btn" onclick="editMarks('${student.examNumber}')">Hariri</button>
+                            <button class="delete-btn" onclick="deleteStudent('${student.examNumber}')">Futa</button>
+                        </td></tr>
+                    </table>
+                `;
+            });
+
+            // Add notifications section
+            content += '<h3>Taarifa za Wanafunzi Waliyoona Matokeo</h3><div class="notifications" id="notificationsList"></div>';
+            dashboardContent.innerHTML = content;
+            console.log("Admin dashboard displayed");
+
+            // Fetch and display notifications
+            notificationsRef.on('value', (snapshot) => {
+                const notifications = snapshot.val();
+                const notificationsList = document.getElementById('notificationsList');
+                if (notifications) {
+                    let notificationContent = '';
+                    Object.values(notifications).forEach(notif => {
+                        notificationContent += `<div class="notification-item">${notif.message}</div>`;
+                    });
+                    notificationsList.innerHTML = notificationContent;
+                } else {
+                    notificationsList.innerHTML = 'Hakuna taarifa za sasa.';
+                }
+            });
+
+            document.getElementById('marksForm').addEventListener('submit', (e) => {
+                e.preventDefault();
+                const examNumber = document.getElementById('studentExamNumberMarks').value;
+                const html = document.getElementById('htmlMarks').value;
+                const css = document.getElementById('cssMarks').value;
+                const java = document.getElementById('javaMarks').value;
+                const resultDate = document.getElementById('resultDate').value;
+                const studentIndex = students.findIndex(s => s && s.examNumber === examNumber);
+                if (studentIndex !== -1) {
+                    students[studentIndex].marks = { html, css, java };
+                    students[studentIndex].resultDate = resultDate;
+                    localStorage.setItem('students', JSON.stringify(students));
+                    studentsRef.set(students)
+                        .then(() => {
+                            showAdminDashboard();
+                            alert('Alama zimehifadhiwa!');
+                            console.log("Marks saved:", students[studentIndex]);
+                        })
+                        .catch((error) => {
+                            console.error("Firebase error:", error);
+                            alert('Alama zimehifadhiwa lokalini tu kutokana na tatizo la Firebase.');
+                        });
+                } else {
+                    alert('Namba hii ya mtihani haijasajiliwa!');
+                    console.log("Student not found:", examNumber);
+                }
+            });
+        }
+
+        window.editMarks = function(examNumber) {
+            const student = students.find(s => s && s.examNumber === examNumber);
+            if (student) {
+                document.getElementById('studentExamNumberMarks').value = student.examNumber;
+                const marks = student.marks || {};
+                document.getElementById('htmlMarks').value = marks.html || '';
+                document.getElementById('cssMarks').value = marks.css || '';
+                document.getElementById('javaMarks').value = marks.java || '';
+                document.getElementById('resultDate').value = student.resultDate || '';
+                console.log("Editing marks for:", student);
+            }
+        };
+
+        window.deleteStudent = function(examNumber) {
+            if (confirm('Je, una uhakika unataka kumudu mwanafunzi huyu?')) {
+                students = students.filter(s => s && s.examNumber !== examNumber);
+                localStorage.setItem('students', JSON.stringify(students));
+                studentsRef.set(students)
+                    .then(() => {
+                        showAdminDashboard();
+                        alert('Mwanafunzi amefutwa!');
+                        console.log("Student deleted:", examNumber);
+                    })
+                    .catch((error) => {
+                        console.error("Firebase error:", error);
+                        alert('Mwanafunzi amefutwa lokalini tu kutokana na tatizo la Firebase.');
+                    });
+            }
+        };
+
+        function showStudentDashboard(student) {
+            loginSection.style.display = 'none';
+            dashboard.classList.add('show');
+            dashboardTitle.innerHTML = `<i class="fas fa-user-graduate"></i> KARIBU!!, ${student.name}`;
+            const marks = student.marks || { html: null, css: null, java: null };
+            const { total, grade, gpa, status } = calculateResults(marks.html, marks.css, marks.java);
+            dashboardContent.innerHTML = `
+                <table>
+                    <tr><th>Jina:</th><td>${student.name || 'N/A'}</td></tr>
+                    <tr><th>Namba ya Mtihani:</th><td>${student.examNumber || 'N/A'}</td></tr>
+                    <tr><th>HTML (30):</th><td>${marks.html || 'loading...'}</td></tr>
+                    <tr><th>CSS (20):</th><td>${marks.css || 'loading...'}</td></tr>
+                    <tr><th>Java (50):</th><td>${marks.java || 'loading...'}</td></tr>
+                    <tr><th>Jumla (100):</th><td>${total || 'loading...'}</td></tr>
+                    <tr><th>Grade:</th><td>${grade || 'loading...'}</td></tr>
+                    <tr><th>GPA:</th><td>${gpa || 'loading...'}</td></tr>
+                    <tr><th>Status:</th><td class="${status === 'Pass' ? 'pass' : 'NOT YET'}">${status || 'loading...'}</td></tr>
+                    <tr><th>Tarehe ya Matokeo:</th><td>${student.resultDate ? formatDateTime(student.resultDate) : 'loading...'}</td></tr>
+                </table>
+            `;
+            console.log("Student dashboard displayed for:", student.examNumber);
+        }
+
+        document.getElementById('logout').addEventListener('click', () => {
+            dashboard.classList.remove('show');
+            loginSection.style.display = 'block';
+            errorMsg.textContent = '';
+            loginForm.reset();
+            console.log("Logged out");
+        });
+
+        studentsRef.on('value', (snapshot) => {
+            const firebaseData = snapshot.val();
+            if (firebaseData) {
+                students = Array.isArray(firebaseData) ? firebaseData : Object.values(firebaseData);
+                localStorage.setItem('students', JSON.stringify(students));
+                console.log("Real-time update from Firebase:", students);
+            }
+        });
+    </script>
+</body>
+</html>
+
